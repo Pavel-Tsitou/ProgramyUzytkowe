@@ -6,7 +6,7 @@
 #include <iterator>
 using namespace std;
 
-const int N = 10'000'019, hash_prime = 1019;
+const int N = 1'000'003, hash_prime = 109;
 
 vector<vector<long long>> left_side[N];
 vector<vector<long long>> right_side[N];
