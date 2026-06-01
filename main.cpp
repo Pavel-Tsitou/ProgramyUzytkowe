@@ -1,16 +1,13 @@
 #include <iostream>
 #include <vector>
 #include <cmath>
-#include <map>
 #include <array>
-#include <algorithm>
-#include <iterator>
+#include <map>
 using namespace std;
 
-const int N = 10'000'003, HASH_PRIME = 109;
+const long long N = 10'000'003, HASH_PRIME = 109;
 
-array<long long, 9> left_precalculated[10'000'228];
-array<long long, 9> right_precalculated[10'000'228];
+array<long long, 9> left_precalculated[100'000'228];
 
 vector<int> left_side[N];
 vector<int> right_side[N];
@@ -18,7 +15,7 @@ vector<int> right_side[N];
 int n, digits[100];
 
 
-void next() {
+void next_digit() {
     int cur = n - 1;
     digits[n - 1]++;
     while (digits[cur] == 10) {
@@ -33,7 +30,6 @@ void next() {
 void precalculate() {
     const int pow_10 = pow(10, n);
     for (int t = 0; t < pow_10; t++) {
-        // cout << "precalculating " << t << '\n';
         for (int d = 1; d < 10; d++) {
             long long sum = 0, prod = 1;
             for (int i = 0; i < n; i++) {
@@ -41,25 +37,24 @@ void precalculate() {
                 prod *= d * d;
             }
             left_precalculated[t][d - 1] = sum;
-            right_precalculated[t][d - 1] = sum * d;
         }
 
-        next();
+        next_digit();
     }
     cout << "Precalculating is done done done!\n";
 }
 
 
-bool eq(array<long long, 9> arr1, array<long long, 9> arr2, bool *mask) {
+bool eq(int left_ind, int right_ind, bool *mask) {
     for (int i = 0; i < 9; i++) {
         if (not mask[i]) continue;
-        if (arr1[i] != arr2[i]) return false;
+        if (left_precalculated[left_ind][i] != (i + 1) * left_precalculated[right_ind][i]) return false;
     }
     return true;
 }
 
 
-int calculate_with_mask(int mask_integer) {
+long long calculate_with_mask(int mask_integer) {
     int n_bits = 0, last_coeff = 1;
     bool mask[9];
     for (int i = 0; i < 9; i++) {
@@ -90,27 +85,25 @@ int calculate_with_mask(int mask_integer) {
         
         hash = 0; prod = 1;
         for (int i = 0; i < 9; i++) {
-            if (mask[i]) hash += (right_precalculated[t][i] + 1) % N * prod % N;
+            if (mask[i]) hash += (left_precalculated[t][i] * (i + 1) + 1) % N * prod % N;
             prod = prod * HASH_PRIME % N;
         }
         hash %= N;
         right_side[hash].push_back(t);
     }
 
-    int ans = 0;
+    long long ans = 0;
     for (int i = 0; i < N; i++) {
         if (left_side[i].size() == 0 or right_side[i].size() == 0) continue;
-        
-        // cout << i + 1 << ". " << left_side[i].size() << ' ' << right_side[i].size() << '\n';
         
         if (left_side[i].size() * right_side[i].size() < 50) {
             for (auto u : left_side[i]) {
                 for (auto v : right_side[i]) {
-                    if (eq(left_precalculated[u], right_precalculated[v], mask)) ans++;
+                    if (eq(u, v, mask)) ans++;
                 }
             }
         } else {
-            map<array<long long, 9>, int> mp;
+            map<array<long long, 9>, long long> mp;
             for (auto u : left_side[i]) {
                 array<long long, 9> temp;
                 for (int j = 0; j < 9; j++) {
@@ -122,7 +115,7 @@ int calculate_with_mask(int mask_integer) {
             for (auto v : right_side[i]) {
                 array<long long, 9> temp;
                 for (int j = 0; j < 9; j++) {
-                    if (mask[j]) temp[j] = right_precalculated[v][j];
+                    if (mask[j]) temp[j] = left_precalculated[v][j] * (j + 1);
                     else temp[j] = -1;
                 }
                 ans += mp[temp];
@@ -130,7 +123,8 @@ int calculate_with_mask(int mask_integer) {
         }
     }
 
-    return ans * pow(-1, n_bits + 1);
+    if (n_bits % 2 == 0) return -ans;
+    return ans;
 }
 
 
@@ -139,7 +133,7 @@ int main() {
 
     precalculate();
 
-    int ans = 0;
+    long long ans = 0;
     const int pow2 = pow(2, 9);
     for (int mask = 1; mask < pow2; mask++) {
         long long tmp = calculate_with_mask(mask);
